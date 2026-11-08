@@ -1,0 +1,31 @@
+# Environments
+.venv/
+.env
+
+# Python Cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Data and  Models
+data/raw/*
+data/processed/*
+data/synthetic/*
+!data/raw/.gitkeep
+!data/processed/.gitkeep
+!data/synthetic/.gitkeep
+models/numerical_dfl/*
+models/textual_dfl/*
+!models/numerical_dfl/.gitkeep
+!models/textual_dfl/.gitkeep
+
+# Papers & Literature
+scientific_papers/*
+
+# OS generated files
+.DS_Store
+Thumbs.db
