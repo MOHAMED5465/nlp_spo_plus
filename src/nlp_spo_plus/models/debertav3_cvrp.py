@@ -12,7 +12,7 @@ class DeBERTaCVRP1(nn.Module):
         self.lora_alpha = lora_alpha
         self.lora_dropout = lora_dropout
         # base model
-        base_model = AutoModel.from_petrained(model_name)
+        base_model = AutoModel.from_pretrained(model_name)
 
         # LoRA Config
         lora_config = LoraConfig(
@@ -31,23 +31,30 @@ class DeBERTaCVRP1(nn.Module):
 
         # edge cost prediction head
         hidden_size = base_model.config.hidden_size
-        self.edge_head = nn.Sequential([
+        self.edge_head = nn.Sequential(
             nn.Linear(2*hidden_size, 256),
             nn.ReLU(),
             nn.Dropout(0.1),
-            nn.Linear(251, 1),
+            nn.Linear(256, 1),
             nn.Softplus()
-        ])
+        )
 
     def forward(self, input_ids, attention_mask):
-        B, N, S = input_ids.shape
+        # capture dimensions for batch, nodes, and sequence length
+        B, N, L = input_ids.shape
+        
+        # flatten tensors to two dimensions for hugging face compatibility
+        input_ids_flat = input_ids.view(B * N, L)
+        attention_mask_flat = attention_mask.view(B * N, L)
+        
+        # forward pass in the encoder with flattened tensors
+        outputs = self.encoder(input_ids=input_ids_flat, attention_mask=attention_mask_flat)
 
-        flats_ids = input_ids.view(B*N, S) # B*N, S
-        flat_mask = attention_mask.view(B*N, S) # B*N, S
+        last_hidden_state = outputs.last_hidden_state 
+        
+        # extract the cls token at position zero
+        cls_tokens = last_hidden_state[:, 0, :]  # batch times nodes, hidden siz
 
-        outputs = self.encoder(input_ids = flats_ids, attention_mask=flat_mask) # B*N, S, hidden_size 
-
-        cls_tokens = outputs[:,0,:] # B*N, hidden_size
         h = cls_tokens.view(B, N, -1) # B, N, hidden_size
 
         # computing edges costs
@@ -56,7 +63,11 @@ class DeBERTaCVRP1(nn.Module):
         h_tgt = h.unsqueeze(1).expand(B, N, N, -1) # B, N, N, hidden_dim
         
         edge_inputs = torch.cat([h_src, h_tgt], dim=-1) # B, N, N, 2*hidden_dim
-        
+
+        edge_inputs = edge_inputs.float()
+
+        self.edge_head = self.edge_head.float()
+
         c_matrix = self.edge_head(edge_inputs).squeeze(-1) # B, N, N
         
         mask = ~torch.eye(N, dtype=torch.bool, device=c_matrix.device)
