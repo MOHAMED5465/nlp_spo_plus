@@ -8,31 +8,31 @@ Rather than optimizing prediction accuracy alone, the project investigates wheth
 
 ## 1. Problem Formulation
 
-We consider a CVRP defined on a directed graph \(G=(V,E)\), where edge costs depend on operational conditions described in textual inputs.
+We consider a CVRP defined on a directed graph $G=(V,E)$, where edge costs depend on operational conditions described in textual inputs.
 
-A neural network \(f_\theta\) predicts the vector of edge costs \(\hat{c}\) from these inputs. The predicted costs are then used to solve the routing problem:
+A neural network $f_\theta$ predicts the vector of edge costs $\hat{c}$ from these inputs. The predicted costs are then used to solve the routing problem:
 
-\[
+$$
 \hat{w} \in \arg\min_{w\in S_{\mathrm{CVRP}}} \hat{c}^{\top}w
-\]
+$$
 
-where \(S_{\mathrm{CVRP}}\) denotes the set of feasible integer CVRP solutions.
+where $S_{\mathrm{CVRP}}$ denotes the set of feasible integer CVRP solutions.
 
-The quality of the resulting decision is evaluated using the true edge costs \(c\), through the decision regret:
+The quality of the resulting decision is evaluated using the true edge costs $c$, through the decision regret:
 
-\[
+$$
 R(\hat{c},c)
 =
 c^\top \hat{w}
 -
 z^*(c)
-\]
+$$
 
 where:
 
-\[
+$$
 z^*(c)=\min_{w\in S_{\mathrm{CVRP}}}c^\top w
-\]
+$$
 
 The central question is whether minimizing a decision-oriented training objective produces better routing decisions than minimizing prediction error alone.
 
@@ -46,19 +46,19 @@ The model uses a shared Transformer encoder to process node-level textual descri
 - **Parameter-efficient fine-tuning:** Low-Rank Adaptation (LoRA) is used to adapt the Transformer while reducing the number of trainable parameters.
 - **Edge prediction:** A shared multilayer perceptron (MLP) predicts directed edge costs from concatenated source and destination node representations.
 
-For nodes \(i\) and \(j\):
+For nodes $i$ and $j$:
 
-\[
+$$
 h_i=\operatorname{Encoder}_{\theta}(t_i)
-\]
+$$
 
-\[
+$$
 \hat{c}_{ij}
 =
 \operatorname{MLP}_{\phi}([h_i;h_j])
-\]
+$$
 
-where \(t_i\) is the textual description associated with node \(i\).
+where $t_i$ is the textual description associated with node $i$.
 
 This architecture avoids concatenating all node descriptions into a single Transformer input and allows the same encoder and edge predictor to be applied to graphs with different numbers of nodes. Generalization to larger or previously unseen graphs remains an empirical question.
 
@@ -76,41 +76,41 @@ The project investigates **Smart Predict-and-Optimize (SPO+)**, a convex surroga
 
 For the integer CVRP, the standard SPO+ loss is:
 
-\[
-L_{\mathrm{SPO+}}(\hat c,c)
+$$
+\mathcal{L}_{\mathrm{SPO+}}(\hat{c},c)
 =
--z_I^*(2\hat c-c)
-+2\hat c^\top w_I^*(c)
+-z_I^*(2\hat{c}-c)
++2\hat{c}^{\top}w_I^*(c)
 -z_I^*(c)
-\]
+$$
 
-where \(z_I^*\) and \(w_I^*\) denote optimal objective values and solutions of the integer optimization problem.
+where $z_I^*$ and $w_I^*$ denote optimal objective values and solutions of the integer optimization problem.
 
 Because repeatedly solving a MILP during training can be computationally expensive, the project uses a **hybrid integer–continuous relaxation approach**:
 
-\[
-L_{\mathrm{hybrid}}(\hat c,c)
+$$
+\mathcal{L}_{\mathrm{hybrid}}(\hat{c},c)
 =
--z_L^*(2\hat c-c)
-+2\hat c^\top w_I^*(c)
+-z_L^*(2\hat{c}-c)
++2\hat{c}^{\top}w_I^*(c)
 -z_I^*(c)
-\]
+$$
 
 where:
 
-- \(w_I^*(c)\) and \(z_I^*(c)\) are precomputed using an exact MILP solver.
-- \(z_L^*(2\hat c-c)\) is obtained by solving a continuous relaxation during training.
+- $w_I^*(c)$ and $z_I^*(c)$ are precomputed using an exact MILP solver.
+- $z_L^*(2\hat{c}-c)$ is obtained by solving a continuous relaxation during training.
 - PyEPO provides the optimization-based subgradients used to train the neural network.
 
 When the continuous feasible region contains the integer feasible set, the hybrid loss remains a convex upper bound on the integer decision regret:
 
-\[
-L_{\mathrm{hybrid}}
+$$
+\mathcal{L}_{\mathrm{hybrid}}(\hat{c},c)
 \geq
-L_{\mathrm{SPO+}}
+\mathcal{L}_{\mathrm{SPO+},I}(\hat{c},c)
 \geq
-R(\hat c,c)
-\]
+R_I(\hat{c},c)
+$$
 
 This approach reduces the computational cost of optimization calls during training while retaining exact integer solutions as supervision. Its effectiveness depends, among other factors, on the quality of the continuous relaxation.
 
