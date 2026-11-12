@@ -77,45 +77,51 @@ The project investigates **Smart Predict-and-Optimize (SPO+)**, a convex surroga
 
 For the integer CVRP, the standard SPO+ loss is:
 
-$$
+```math
 \mathcal{L}_{\mathrm{SPO+}}(\hat{c},c)
 =
 -z_I^*(2\hat{c}-c)
 +2\hat{c}^{\top}w_I^*(c)
 -z_I^*(c)
-$$
+```
 
-where $z_I^*$ and $w_I^*$ denote optimal objective values and solutions of the integer optimization problem.
+where the optimal integer objective value and solution are defined as:
+
+```math
+z_I^*(c) = \min_{w \in S_I} c^{\top}w
+```
+
+```math
+w_I^*(c) \in \arg\min_{w \in S_I} c^{\top}w
+```
 
 Because repeatedly solving a MILP during training can be computationally expensive, the project uses a **hybrid integer-continuous relaxation approach**:
 
-$$
+```math
 \mathcal{L}_{\mathrm{hybrid}}(\hat{c},c)
 =
 -z_L^*(2\hat{c}-c)
 +2\hat{c}^{\top}w_I^*(c)
 -z_I^*(c)
-$$
+```
 
 where:
 
-- $w_I^*(c)$ and $z_I^*(c)$ are precomputed using an exact MILP solver.
-- $z_L^*(2\hat{c}-c)$ is obtained by solving a continuous relaxation during training.
-- PyEPO provides the optimization-based subgradients used to train the neural network.
+- `w_I^*(c)` and `z_I^*(c)` are precomputed using an exact MILP solver.
+- `z_L^*(2c_hat - c)` is obtained by solving a continuous relaxation during training.
+- PyEPO provides optimization-based subgradients for neural network training.
 
 When the continuous feasible region contains the integer feasible set, the hybrid loss remains a convex upper bound on the integer decision regret:
 
-$$
+```math
 \mathcal{L}_{\mathrm{hybrid}}(\hat{c},c)
 \geq
 \mathcal{L}_{\mathrm{SPO+}}(\hat{c},c)
 \geq
-R(\hat{c},c)
-$$
+R_I(\hat{c},c)
+```
 
-This approach reduces the computational cost of optimization calls during training while retaining exact integer solutions as supervision.
-
-Its effectiveness depends, among other factors, on the quality of the continuous relaxation.
+This approach reduces the computational cost of optimization calls during training while retaining exact integer solutions as supervision. Its effectiveness depends, among other factors, on the quality of the continuous relaxation.
 
 ### 3.3 Training Strategy
 
