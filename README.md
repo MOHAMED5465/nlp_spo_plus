@@ -199,4 +199,4 @@ This is an ongoing personal research project.
 
 The current work focuses on establishing reliable numerical and textual DFL baselines, evaluating relaxation-based training, and developing reproducible experiments.
 
-Future investigations may include additional optimization formulations, out-of-distribution evaluation, and more extensive analysis of semantic robustness.
+Future investigations may include additional optimization formulations, out-of-distribution evaluation, and more extensive analysis of semantic robustness (more to come).
