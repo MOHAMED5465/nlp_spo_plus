@@ -13,7 +13,7 @@ We consider a CVRP defined on a directed graph $G=(V,E)$, where edge costs depen
 A neural network $f_\theta$ predicts the vector of edge costs $\hat{c}$ from these inputs. The predicted costs are then used to solve the routing problem:
 
 $$
-\hat{w} \in \arg\min_{w\in S_{\mathrm{CVRP}}} \hat{c}^{\top}w
+\hat{w} \in \arg\min_{w \in S_{\mathrm{CVRP}}} \hat{c}^{\top} w
 $$
 
 where $S_{\mathrm{CVRP}}$ denotes the set of feasible integer CVRP solutions.
@@ -21,20 +21,16 @@ where $S_{\mathrm{CVRP}}$ denotes the set of feasible integer CVRP solutions.
 The quality of the resulting decision is evaluated using the true edge costs $c$, through the decision regret:
 
 $$
-R(\hat{c},c)
-=
-c^\top \hat{w}
--
-z^*(c)
+R(\hat{c},c) = c^{\top}\hat{w} - z^*(c)
 $$
 
 where:
 
 $$
-z^*(c)=\min_{w\in S_{\mathrm{CVRP}}}c^\top w
+z^*(c) = \min_{w \in S_{\mathrm{CVRP}}} c^{\top}w
 $$
 
-The central question is whether minimizing a decision-oriented training objective produces better routing decisions than minimizing prediction error alone.
+The central research question is whether minimizing a decision-oriented training objective produces better routing decisions than minimizing prediction error alone.
 
 ## 2. Learning Architecture
 
@@ -49,30 +45,35 @@ The model uses a shared Transformer encoder to process node-level textual descri
 For nodes $i$ and $j$:
 
 $$
-h_i=\operatorname{Encoder}_{\theta}(t_i)
+h_i = f_{\theta}(t_i)
 $$
 
 $$
-\hat{c}_{ij}
-=
-\operatorname{MLP}_{\phi}([h_i;h_j])
+\hat{c}_{ij} = g_{\phi}([h_i;h_j])
 $$
 
-where $t_i$ is the textual description associated with node $i$.
+where:
 
-This architecture avoids concatenating all node descriptions into a single Transformer input and allows the same encoder and edge predictor to be applied to graphs with different numbers of nodes. Generalization to larger or previously unseen graphs remains an empirical question.
+- $t_i$ is the textual description associated with node $i$.
+- $f_{\theta}$ is the shared Transformer encoder.
+- $h_i$ is the learned node representation.
+- $g_{\phi}$ is the edge prediction MLP.
+
+This architecture avoids concatenating all node descriptions into a single Transformer input and allows the same encoder and edge predictor to be applied to graphs with different numbers of nodes.
+
+Generalization to larger or previously unseen graphs remains an empirical question.
 
 ## 3. Decision-Focused Learning
 
-### MSE Baseline
+### 3.1 MSE Baseline
 
 The standard predict-then-optimize approach trains the model to minimize the Mean Squared Error (MSE) between predicted and true routing costs.
 
 However, minimizing prediction error does not necessarily minimize decision regret: prediction errors can have different consequences depending on their impact on the optimal routing solution.
 
-### SPO+ and Relaxation-Based Training
+### 3.2 SPO+ and Relaxation-Based Training
 
-The project investigates **Smart Predict-and-Optimize (SPO+)**, a convex surrogate loss for decision regret.
+The project investigates **Smart Predict-and-Optimize (SPO+)**, a convex surrogate loss for decision regret with respect to predicted costs.
 
 For the integer CVRP, the standard SPO+ loss is:
 
@@ -86,7 +87,7 @@ $$
 
 where $z_I^*$ and $w_I^*$ denote optimal objective values and solutions of the integer optimization problem.
 
-Because repeatedly solving a MILP during training can be computationally expensive, the project uses a **hybrid integer–continuous relaxation approach**:
+Because repeatedly solving a MILP during training can be computationally expensive, the project uses a **hybrid integer-continuous relaxation approach**:
 
 $$
 \mathcal{L}_{\mathrm{hybrid}}(\hat{c},c)
@@ -107,14 +108,16 @@ When the continuous feasible region contains the integer feasible set, the hybri
 $$
 \mathcal{L}_{\mathrm{hybrid}}(\hat{c},c)
 \geq
-\mathcal{L}_{\mathrm{SPO+},I}(\hat{c},c)
+\mathcal{L}_{\mathrm{SPO+}}(\hat{c},c)
 \geq
-R_I(\hat{c},c)
+R(\hat{c},c)
 $$
 
-This approach reduces the computational cost of optimization calls during training while retaining exact integer solutions as supervision. Its effectiveness depends, among other factors, on the quality of the continuous relaxation.
+This approach reduces the computational cost of optimization calls during training while retaining exact integer solutions as supervision.
 
-### Training Strategy
+Its effectiveness depends, among other factors, on the quality of the continuous relaxation.
+
+### 3.3 Training Strategy
 
 The textual DFL pipeline follows two stages:
 
@@ -129,7 +132,7 @@ The optimization component is implemented using **Gurobi** and **PyEPO**.
 
 The current textual DFL pipeline uses:
 
-- **Exact CVRP model:** Mixed-Integer Linear Programming formulation based on Miller–Tucker–Zemlin (MTZ) constraints, used to generate optimal supervision labels and evaluate decision regret.
+- **Exact CVRP model:** Mixed-Integer Linear Programming formulation based on Miller-Tucker-Zemlin (MTZ) constraints, used to generate optimal supervision labels and evaluate decision regret.
 - **Relaxed CVRP model:** Continuous relaxation of the MTZ formulation, used for optimization-based training.
 
 Additional relaxations, including assignment-based and flow-based formulations, are investigated in the numerical DFL experiments to study the trade-off between computational efficiency and decision quality.
@@ -199,4 +202,4 @@ This is an ongoing personal research project.
 
 The current work focuses on establishing reliable numerical and textual DFL baselines, evaluating relaxation-based training, and developing reproducible experiments.
 
-Future investigations may include additional optimization formulations, out-of-distribution evaluation, and more extensive analysis of semantic robustness (more to come).
+Future investigations may include additional optimization formulations, out-of-distribution evaluation, and more extensive analysis of semantic robustness.
